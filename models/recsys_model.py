@@ -17,6 +17,7 @@ def load_checkpoint(recsys, pre_trained):
 
     return kwargs, checkpoint
 
+
 class RecSys(nn.Module):
     def __init__(self, recsys_model, pre_trained_data, device):
         super().__init__()
@@ -24,14 +25,14 @@ class RecSys(nn.Module):
         kwargs['args'].device = device
         model = SASRec(**kwargs)
         model.load_state_dict(checkpoint)
-            
+
         for p in model.parameters():
             p.requires_grad = False
-            
+
         self.item_num = model.item_num
         self.user_num = model.user_num
         self.model = model.to(device)
         self.hidden_units = kwargs['args'].hidden_units
-        
+
     def forward():
         print('forward')

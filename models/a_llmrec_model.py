@@ -27,6 +27,27 @@ class two_layer_mlp(nn.Module):
         return x, x1
 
 
+class two_layer_mlp2(nn.Module):
+    def __init__(self, dims):
+        super().__init__()
+        self.fc1 = nn.Linear(dims, 768)
+        self.fc2 = nn.Linear(768, 128)
+        self.fc3 = nn.Linear(128, 768)
+        self.fc4 = nn.Linear(768, dims)
+        self.sigmoid = nn.Sigmoid()
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x)
+        x1 = self.fc3(x)
+        x1 = self.relu(x1)
+        x1 = self.fc4(x1)
+        return x, x1
+
+
 class A_llmrec_model(nn.Module):
     def __init__(self, args):
         super().__init__()
@@ -48,8 +69,8 @@ class A_llmrec_model(nn.Module):
                 self.emb = SentenceTransformer('nq-distilbert-base-v1')
                 self.mlp2 = two_layer_mlp(self.sbert_dim)
             if args.emb == 'llama':
-                self.emb = LlamaSenetenceEmbed()
-                self.mlp2 = two_layer_mlp(4096)
+                self.emb = LlamaSenetenceEmbed(self.device)
+                self.mlp2 = two_layer_mlp2(4096)
 
         self.mse = nn.MSELoss()
 
@@ -85,22 +106,22 @@ class A_llmrec_model(nn.Module):
             nn.init.xavier_normal_(self.item_emb_proj[0].weight)
             nn.init.xavier_normal_(self.item_emb_proj[3].weight)
 
-    def save_model(self, args, epoch1=None, epoch2=None):
+    def save_model(self, args, epoch1=None, epoch2=None, step=''):
         out_dir = f'./models/saved_models_{args.emb}_{args.llm}/'
         create_dir(out_dir)
         out_dir += f'{args.rec_pre_trained_data}_{args.recsys}_{epoch1}'
         if args.pretrain_stage1:
             if self.args.emb == 'sbert':
                 torch.save(self.emb.state_dict(), f'{out_dir}_{args.emb}.pt')
-            if self.args.emb == 'llama':
-                self.emb.save_pretrained(f'{out_dir}_{args.emb}.pt')
+            # if self.args.emb == 'llama':
+            #     self.emb.save_pretrained(f'{out_dir}_{args.emb}.pt')
             torch.save(self.mlp.state_dict(), f'{out_dir}_mlp.pt')
             torch.save(self.mlp2.state_dict(), f'{out_dir}_mlp2.pt')
 
         out_dir += f'_{args.llm}_{epoch2}'
         if args.pretrain_stage2:
-            torch.save(self.log_emb_proj.state_dict(), f'{out_dir}_log_proj.pt')
-            torch.save(self.item_emb_proj.state_dict(), f'{out_dir}_item_proj.pt')
+            torch.save(self.log_emb_proj.state_dict(), f'{out_dir}_log_proj_{step}.pt')
+            torch.save(self.item_emb_proj.state_dict(), f'{out_dir}_item_proj_{step}.pt')
 
     def load_model(self, args, phase1_epoch=None, phase2_epoch=None):
         out_dir = f'./models/saved_models_{args.emb}_{args.llm}/{args.rec_pre_trained_data}_{args.recsys}_{phase1_epoch}_'
@@ -246,7 +267,9 @@ class A_llmrec_model(nn.Module):
             text_rc_loss += text_reconstruction_loss.item()
 
         print(
-            f"loss in epoch {epoch}/{total_epoch} iteration {step}/{total_step}: {mean_loss / iterss} / BPR loss: {bpr_loss / iterss} / Matching loss: {gt_loss / iterss} / Item reconstruction: {rc_loss / iterss} / Text reconstruction: {text_rc_loss / iterss}"
+            f"loss in epoch {epoch}/{total_epoch-1} iteration {step}/{total_step}: {mean_loss/iterss:.6f}\n"
+            f"BPR loss: {bpr_loss/iterss:.6f} / Matching loss: {gt_loss/iterss:.6f}\n"
+            f"Item reconstruction: {rc_loss/iterss:.6f} / Text reconstruction: {text_rc_loss/iterss:.6f}"
         )
 
     def make_interact_text(self, interact_ids, interact_max_num):
@@ -346,7 +369,7 @@ class A_llmrec_model(nn.Module):
         loss_rm.backward()
         optimizer.step()
         mean_loss += loss_rm.item()
-        print(f"A-LLMRec model loss in epoch {epoch}/{total_epoch-1} iteration {step}/{total_step}: {mean_loss}")
+        print(f"A-LLMRec model loss in epoch {epoch}/{total_epoch-1} iteration {step}/{total_step}: {mean_loss:.6f}")
 
     def generate(self, data):
         u, seq, pos, neg, rank = data
@@ -426,7 +449,8 @@ class A_llmrec_model(nn.Module):
                     # top_p=0.9,
                     temperature=1,
                     num_beams=1,
-                    max_length=512,
+                    # max_length=512,
+                    max_new_tokens=50,
                     min_length=1,
                     pad_token_id=self.llm.llm_tokenizer.eos_token_id,
                     repetition_penalty=1.5,

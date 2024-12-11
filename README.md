@@ -52,3 +52,12 @@ Inference stage generates "recommendation_output.txt" file and write the recomme
 python main.py --inference --rec_pre_trained_data Movies_and_TV
 python eval.py
 ```
+CUDA_VISIBLE_DEVICES=0,1 python main.py --pretrain_stage1 --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --num_epochs 10 
+
+CUDA_VISIBLE_DEVICES=0,1 python main.py --pretrain_stage2 --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --num_epochs 5 --multi_gpu --phase1_epoch 3
+
+CUDA_VISIBLE_DEVICES=0,1 python main.py --pretrain_stage2 --rec_pre_trained_data Movies_and_TV --llm llama --num_epochs 5 --multi_gpu
+
+CUDA_VISIBLE_DEVICES=0,1 python main.py --inference --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --phase1_epoch 3 --phase2_epoch 1 --multi_gpu --batch_size_infer 10
+
+python eval_my.py --emb llama --llm llama

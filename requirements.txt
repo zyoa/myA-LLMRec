@@ -6,3 +6,4 @@ accelerate
 bitsandbytes
 transformers
 sentence-transformers
+angle_emb

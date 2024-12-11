@@ -17,7 +17,7 @@ def preprocess(fname):
     line = 0
 
     file_path = f'../../data/amazon/{fname}.json.gz'
-    
+
     # counting interactions for each user and item
     for l in parse(file_path):
         line += 1
@@ -26,15 +26,15 @@ def preprocess(fname):
         time = l['unixReviewTime']
         countU[rev] += 1
         countP[asin] += 1
-    
-    usermap = dict()
+
+    usermap = {}
     usernum = 0
-    itemmap = dict()
+    itemmap = {}
     itemnum = 0
-    User = dict()
+    User = {}
     review_dict = {}
     name_dict = {'title':{}, 'description':{}}
-    
+
     f = open(f'../../data/amazon/meta_{fname}.json', 'r')
     json_data = f.readlines()
     f.close()
@@ -42,20 +42,20 @@ def preprocess(fname):
     meta_dict = {}
     for l in data_list:
         meta_dict[l['asin']] = l
-    
+
     for l in parse(file_path):
         line += 1
         asin = l['asin']
         rev = l['reviewerID']
         time = l['unixReviewTime']
-        
+
         threshold = 5
         if ('Beauty' in fname) or ('Toys' in fname):
             threshold = 4
-            
+
         if countU[rev] < threshold or countP[asin] < threshold:
             continue
-        
+
         if rev in usermap:
             userid = usermap[rev]
         else:
@@ -63,7 +63,7 @@ def preprocess(fname):
             userid = usernum
             usermap[rev] = userid
             User[userid] = []
-        
+
         if asin in itemmap:
             itemid = itemmap[asin]
         else:
@@ -71,27 +71,19 @@ def preprocess(fname):
             itemid = itemnum
             itemmap[asin] = itemid
         User[userid].append([time, itemid])
-        
-        
-        if itemmap[asin] in review_dict:
-            try:
-                review_dict[itemmap[asin]]['review'][usermap[rev]] = l['reviewText']
-            except:
-                a = 0
-            try:
-                review_dict[itemmap[asin]]['summary'][usermap[rev]] = l['summary']
-            except:
-                a = 0
-        else:
+
+
+        if itemmap[asin] not in review_dict:
             review_dict[itemmap[asin]] = {'review': {}, 'summary':{}}
-            try:
-                review_dict[itemmap[asin]]['review'][usermap[rev]] = l['reviewText']
-            except:
-                a = 0
-            try:
-                review_dict[itemmap[asin]]['summary'][usermap[rev]] = l['summary']
-            except:
-                a = 0
+        try:
+            review_dict[itemmap[asin]]['review'][usermap[rev]] = l['reviewText']
+        except:
+            a = 0
+        try:
+            review_dict[itemmap[asin]]['summary'][usermap[rev]] = l['summary']
+        except:
+            a = 0
+        
         try:
             if len(meta_dict[asin]['description']) ==0:
                 name_dict['description'][itemmap[asin]] = 'Empty description'
@@ -99,18 +91,18 @@ def preprocess(fname):
                 name_dict['description'][itemmap[asin]] = meta_dict[asin]['description'][0]
             name_dict['title'][itemmap[asin]] = meta_dict[asin]['title']
         except:
-            a =0
-    
+            a = 0
+
     with open(f'../../data/amazon/{fname}_text_name_dict.json.gz', 'wb') as tf:
         pickle.dump(name_dict, tf)
-    
-    for userid in User.keys():
+
+    for userid in User:
         User[userid].sort(key=lambda x: x[0])
-        
+
     print(usernum, itemnum)
-    
+
     f = open(f'../../data/amazon/{fname}.txt', 'w')
-    for user in User.keys():
+    for user in User:
         for i in User[user]:
             f.write('%d %d\n' % (user, i[1]))
     f.close()

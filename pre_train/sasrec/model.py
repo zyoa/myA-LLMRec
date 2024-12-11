@@ -18,12 +18,13 @@ class PointWiseFeedForward(torch.nn.Module):
         outputs = outputs.transpose(-1, -2)
         outputs += inputs
         return outputs
-    
+
+
 class SASRec(torch.nn.Module):
     def __init__(self, user_num, item_num, args):
         super(SASRec, self).__init__()
 
-        self.kwargs = {'user_num': user_num, 'item_num':item_num, 'args':args}
+        self.kwargs = {'user_num': user_num, 'item_num': item_num, 'args': args}
         self.user_num = user_num
         self.item_num = item_num
         self.dev = args.device
@@ -39,16 +40,15 @@ class SASRec(torch.nn.Module):
 
         self.last_layernorm = torch.nn.LayerNorm(args.hidden_units, eps=1e-8)
 
-        self.args =args
-        
-        
+        self.args = args
+
         for _ in range(args.num_blocks):
             new_attn_layernorm = torch.nn.LayerNorm(args.hidden_units, eps=1e-8)
             self.attention_layernorms.append(new_attn_layernorm)
 
-            new_attn_layer =  torch.nn.MultiheadAttention(args.hidden_units,
-                                                            args.num_heads,
-                                                            args.dropout_rate)
+            new_attn_layer = torch.nn.MultiheadAttention(args.hidden_units,
+                                                         args.num_heads,
+                                                         args.dropout_rate)
             self.attention_layers.append(new_attn_layer)
 
             new_fwd_layernorm = torch.nn.LayerNorm(args.hidden_units, eps=1e-8)
@@ -73,15 +73,15 @@ class SASRec(torch.nn.Module):
         for i in range(len(self.attention_layers)):
             seqs = torch.transpose(seqs, 0, 1)
             Q = self.attention_layernorms[i](seqs)
-            mha_outputs, _ = self.attention_layers[i](Q, seqs, seqs, 
-                                            attn_mask=attention_mask)
+            mha_outputs, _ = self.attention_layers[i](Q, seqs, seqs,
+                                                      attn_mask=attention_mask)
 
             seqs = Q + mha_outputs
             seqs = torch.transpose(seqs, 0, 1)
 
             seqs = self.forward_layernorms[i](seqs)
             seqs = self.forward_layers[i](seqs)
-            seqs *=  ~timeline_mask.unsqueeze(-1)
+            seqs *= ~timeline_mask.unsqueeze(-1)
 
         log_feats = self.last_layernorm(seqs)
         return log_feats
@@ -91,7 +91,7 @@ class SASRec(torch.nn.Module):
         if mode == 'log_only':
             log_feats = log_feats[:, -1, :]
             return log_feats
-            
+
         pos_embs = self.item_emb(torch.LongTensor(pos_seqs).to(self.dev))
         neg_embs = self.item_emb(torch.LongTensor(neg_seqs).to(self.dev))
 
