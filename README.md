@@ -1,3 +1,29 @@
+This repository is a fork of the original implementation of **Large Language Models meet Collaborative Filtering: An Efficient All-round LLM-based Recommender System (https://github.com/ghdtjr/A-LLMRec)**, modified as follows:
+
+* **Embedding:** Replaced SBERT with AnglE-llama (https://github.com/SeanLee97/AnglE).
+* **LLM:**  Utilizes llama2-7b.
+* **Code Modifications:**  Added necessary argparse arguments and modified evaluation scripts to accommodate these changes.
+
+Therefore, you can run stage1, stage2, inference, and evaluation respectively with the following commands:
+
+```
+python main.py --pretrain_stage1 --rec_pre_trained_data Movies_and_TV --num_epochs 3 --llm llama --emb llama --multi_gpu 
+
+python main.py --pretrain_stage2 --rec_pre_trained_data Movies_and_TV --num_epochs 1 --phase1_epoch 3 --llm llama --emb llama --multi_gpu 
+
+python main.py --inference --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --phase1_epoch 3 --phase2_epoch 1 --multi_gpu --batch_size_infer 10
+
+python eval_my.py --emb llama --llm llama
+```
+
+Ablation (SBERT + LLaMA-2)
+```
+python main.py --pretrain_stage2 --rec_pre_trained_data Movies_and_TV --num_epochs 1 --phase1_epoch 10 --llm llama --emb llama --multi_gpu 
+```
+
+---
+
+
 # A-LLMRec : Large Language Models meet Collaborative Filtering: An Efficient All-round LLM-based Recommender System
 
 The source code for A-LLMRec : Large Language Models meet Collaborative Filtering: An Efficient All-round LLM-based Recommender System paper, accepted at **KDD 2024**.
@@ -52,12 +78,3 @@ Inference stage generates "recommendation_output.txt" file and write the recomme
 python main.py --inference --rec_pre_trained_data Movies_and_TV
 python eval.py
 ```
-CUDA_VISIBLE_DEVICES=0,1 python main.py --pretrain_stage1 --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --num_epochs 10 
-
-CUDA_VISIBLE_DEVICES=0,1 python main.py --pretrain_stage2 --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --num_epochs 5 --multi_gpu --phase1_epoch 3
-
-CUDA_VISIBLE_DEVICES=0,1 python main.py --pretrain_stage2 --rec_pre_trained_data Movies_and_TV --llm llama --num_epochs 5 --multi_gpu
-
-CUDA_VISIBLE_DEVICES=0,1 python main.py --inference --rec_pre_trained_data Movies_and_TV --llm llama --emb llama --phase1_epoch 3 --phase2_epoch 1 --multi_gpu --batch_size_infer 10
-
-python eval_my.py --emb llama --llm llama
